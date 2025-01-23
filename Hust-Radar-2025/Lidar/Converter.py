@@ -4,6 +4,7 @@
 理论上坐标系之间轴的关系：
 激光雷达的x是相机坐标系的z，激光雷达的y是相机坐标系的-x，激光雷达的z是相机坐标系的-y
 '''
+
 # 外参矩阵R:
 '''
    0.0092749    -0.999957  0.000449772
@@ -41,8 +42,12 @@ import numpy as np
 import open3d as o3d
 from camera_locator.anchor import Anchor
 from camera_locator.point_picker import PointsPicker
+from .fast_search import FastSearch
+from .vision_location import Vision_Locator
 import cv2
+import time
 import yaml
+
 
 # 从YAML文件中读取字典
 
@@ -52,31 +57,38 @@ import yaml
 # 方法3为将相机坐标系下的点云转换到图像坐标系下
 # 方法4为将图像坐标系下的点云转换到相机坐标系下
 class Converter:
-    # 传入data_loader,用data_loader初始化类
-    # def __init__(self, R, T, fx, fy, cx, cy , max_depth = 40):
-    #     self.R = R # 外参矩阵的旋转矩阵，传入的是一个3*3的矩阵
-    #     self.T = T # 外参矩阵的平移矩阵，传入的是一个3*1的矩阵
-    #     self.fx = fx # 相机内参矩阵的fx
-    #     self.fy = fy # 相机内参矩阵的fy
-    #     self.cx = cx # 相机内参矩阵的cx
-    #     self.cy = cy # 相机内参矩阵的cy
-    #     self.max_depth = max_depth # 最大深度值
-    #     # 相机坐标系到图像坐标系的内参矩阵，3*3的矩阵
-    #     self.intrinsic_matrix = np.array([[fx, 0, cx], [0, fy, cy], [0, 0, 1]])
-    #     # 图像坐标系到相机坐标系的内参矩阵，3*3的矩阵
-    #     self.intrinsic_matrix_inv = np.linalg.inv(self.intrinsic_matrix) # 图像坐标系到相机坐标系的内参矩阵的逆矩阵，自动生成的，得检查一下
-    #     # 激光雷达到相机的外参矩阵，4*4的矩阵，前三列为旋转矩阵，第四列为平移矩阵
-    #     self.extrinsic_matrix = np.array([[R[0, 0], R[0, 1], R[0, 2], T[0]], [R[1, 0], R[1, 1], R[1, 2], T[1]], [R[2, 0], R[2, 1], R[2, 2], T[2]], [0, 0, 0, 1]])
-    #     # 相机到激光雷达的外参矩阵，4*4的矩阵，前三列为旋转矩阵，第四列为平移矩阵
-    #     self.extrinsic_matrix_inv = np.linalg.inv(self.extrinsic_matrix) # 相机到激光雷达的外参矩阵的逆矩阵，自动生成的，得检查一下
-    def __init__(self, my_color ,data_loader_path = 'parameters.yaml' ):
+    def __init__(self, my_color, data_loader_path='parameters.yaml'):
         # 传入data_loader路径,用data_loader初始化类
-        with open(data_loader_path, 'r') as file:
+        # 2024
+        self_R0TL = [8.67, -5.715, 0.120 + 0.3]
+        self_R0TR = [8.67, -5.715 - 0.4, 0.120 + 0.3]
+        self_Tower = [11.1865, -12.419, 1.003 + 0.118]
+        enemy_Base = [26.153, -7.5, 1.043 + 0.2]
+        enemy_Tower = [16.64, -2.4215, 1.331 + 0.118]
+        # 2025
+        enemy_Base_25 = [25.591, -7.5, 1.043 + 0.2]
+        enemy_Tower_25 = [17.008, -3.643, 1.331 + 0.4]
+        self_FORTRESS = [6.600, -7.5, 0.25]
+        self_Tower_25 = [10.992, -11.357, 1.331 + 0.4]
+
+
+        self.yaml_path = 'points.yaml'
+        self.global_color = my_color
+        with open(data_loader_path, 'r',encoding='utf-8', errors='ignore') as file:
             data_loader = yaml.safe_load(file)
-        self.left_up = data_loader['field'][my_color]['left_up']
-        self.left_down = data_loader['field'][my_color]['left_down']
-        self.right_down = data_loader['field'][my_color]['right_down']
-        self.right_up = data_loader['field'][my_color]['right_up']
+        # 2024
+        # self.left_up = data_loader['field'][my_color]['left_up']
+        # self.left_down = data_loader['field'][my_color]['left_down']
+        # self.right_down = data_loader['field'][my_color]['right_down']
+        # self.right_up = data_loader['field'][my_color]['right_up']
+        self.real_points = [self_R0TL, self_R0TR, self_Tower, enemy_Base, enemy_Tower]
+        # 2025
+        self.enemy_base = data_loader['field_25']['enemy_base']
+        self.enemy_tower = data_loader['field_25']['enemy_Tower_25']
+        self.fortress = data_loader['field_25']['self_FORTRESS']
+        self.Tower_25 = data_loader['field_25']['self_Tower_25']
+        self.real_points_25 = [self.fortress, self.Tower_25, self.enemy_base, self.enemy_tower]# TODO 注意顺序
+        # 获取相机坐标系到激光雷达坐标系的外参
         # 获取R和T，并将它们转换为NumPy数组
         self.R = np.array(data_loader['calib']['extrinsic']['R']['data']).reshape(
             (data_loader['calib']['extrinsic']['R']['rows'], data_loader['calib']['extrinsic']['R']['cols']))
@@ -101,24 +113,49 @@ class Converter:
         # 去畸变参数
         self.distortion_matrix = np.array(data_loader['calib']['distortion']['data'])
         # 相机坐标系到图像坐标系的内参矩阵，3*3的矩阵
-        self.intrinsic_matrix = cp.array([[self.fx, 0, self.cx], [0, self.fy, self.cy], [0, 0, 1]])
+        self.intrinsic_matrix = np.array([[self.fx, 0, self.cx], [0, self.fy, self.cy], [0, 0, 1]],dtype=np.float32)
         # 图像坐标系到相机坐标系的内参矩阵，3*3的矩阵
-        self.intrinsic_matrix_inv = cp.linalg.inv(self.intrinsic_matrix)
+        self.intrinsic_matrix_inv = np.linalg.inv(self.intrinsic_matrix)
         # 激光雷达到相机的外参矩阵，4*4的矩阵，前三列为旋转矩阵，第四列为平移矩阵
-        self.extrinsic_matrix = cp.hstack((self.R, self.T))
-        self.extrinsic_matrix = cp.vstack((self.extrinsic_matrix, [0, 0, 0, 1]))
+        self.extrinsic_matrix = np.hstack((self.R, self.T))
+        self.extrinsic_matrix = np.vstack((self.extrinsic_matrix, [0, 0, 0, 1]))
         # 相机到激光雷达的外参矩阵，4*4的矩阵，前三列为旋转矩阵，第四列为平移矩阵
-        self.extrinsic_matrix_inv = cp.linalg.inv(self.extrinsic_matrix)
+        self.extrinsic_matrix_inv = np.linalg.inv(self.extrinsic_matrix)
         # 相机到赛场坐标系的外参矩阵，4*4的矩阵，前三列为旋转矩阵，第四列为平移矩阵
-        self.camera_to_field_R = None # 后面初始化
-        self.camera_to_field_T = None # 后面初始化
-        self.camera_to_field_matrix = None # 后面初始化
-        self.field_to_camera_R = None # 后面初始化
+        self.camera_to_field_R = None  # 后面初始化
+        self.camera_to_field_T = None  # 后面初始化
+        self.camera_to_field_matrix = None  # 后面初始化
+        self.field_to_camera_R = None  # 后面初始化
+        self.field_to_camera_T = None  # 后面初始化
+        self.field_to_camera_matrix = None  # 后面初始化
         print(self.extrinsic_matrix)
         print(self.intrinsic_matrix)
+        # 快速搜索
+        self.fast_search = FastSearch()
+        # 视觉定位类
+        self.vision_locator = None
+        self.armor_height = 0.15
 
     # 相机坐标系到赛场坐标系的初始化
-    def camera_to_field_init(self,capture):
+    # def camera_to_field_init_1(self):
+    #     if self.global_color == 'R':
+    #         loaded_arrays = np.load('arrays_test_red.npy')  # 加载标定好的仿射变换矩阵
+    #         self.map_image = cv2.imread("images/map_red.jpg")  # 加载红方视角地图
+    #         self.mask_image = cv2.imread("images/map_mask.jpg")  # 加载红发落点判断掩码
+    #     else:
+    #         loaded_arrays = np.load('arrays_test_blue.npy')  # 加载标定好的仿射变换矩阵
+    #         self.map_image = cv2.imread("images/map_blue.jpg")  # 加载蓝方视角地图
+    #         self.mask_image = cv2.imread("images/map_mask.jpg")  # 加载蓝方落点判断掩码
+    #     # 确定地图画面像素，保证不会溢出
+    #     self.msk_h, self.msk_w = self.mask_image.shape[:2]
+    #     self.msk_h -= 1
+    #     self.msk_w -= 1
+    #     self.perspective_matrix_g = loaded_arrays[0]
+    #     self.perspective_matrix_h = loaded_arrays[1]
+    #     self.perspective_matrix_hh = loaded_arrays[2]
+    #     print(loaded_arrays)
+
+    def camera_to_field_init(self, capture):
         # 初始化要用的类
         anchor = Anchor()
         pp = PointsPicker()
@@ -128,40 +165,119 @@ class Converter:
             image = capture.get_frame()
             # 把image resize为1920*1080
             show_image = cv2.resize(image, (1920, 1080))
-            cv2.imshow("clear press y else n",show_image)
+            cv2.imshow("clear press y else n", show_image)
             # 接收按键，如果y则进入下一步，否则重选一张
             key = cv2.waitKey(0)
             if key == ord('y'):
                 pp.caller(image, anchor)
-                true_points = np.array([self.left_up, self.left_down, self.right_down, self.right_up], dtype=np.float32)
+                true_points = np.array(self.real_points, dtype=np.float32)
                 pixel_points = np.array(anchor.vertexes, dtype=np.float32)
+                print(pixel_points)
                 _, rotation_vector, translation_vector = cv2.solvePnP(true_points, pixel_points,
-                                                                      self.intrinsic_matrix.get(),
-                                                                      self.distortion_matrix)
+                                                                      self.intrinsic_matrix,
+                                                                      self.distortion_matrix, flags=cv2.SOLVEPNP_EPNP)
                 rotation_matrix = cv2.Rodrigues(rotation_vector)[0]  # 从赛场到相机的旋转矩阵
-
+                self.field_to_camera_R = rotation_matrix
+                self.field_to_camera_T = translation_vector
+                # self.field_to_camera_T = np.array([x * 1000 for x in translation_vector],dtype=np.float32)
                 # 将旋转矩阵R和平移向量T合并成一个4x4的齐次坐标变换矩阵
                 # 注意这里使用 rotation_matrix 和 translation_vector，前者是赛场到相机的旋转矩阵，后者是对应的平移向量
                 transformation_matrix = np.hstack((rotation_matrix, translation_vector.reshape(-1, 1)))  # 创建包含R和T的3x4矩阵
 
                 transformation_matrix = np.vstack((transformation_matrix, [0, 0, 0, 1]))  # 添加一个[0, 0, 0, 1]行向量
-                print("transformation_matrix",transformation_matrix)
+                self.field_to_camera_matrix = transformation_matrix
+                print("transformation_matrix", transformation_matrix)
                 # 获得从相机坐标系到赛场坐标系的矩阵，通过求逆
                 self.camera_to_field_matrix = np.linalg.inv(transformation_matrix)
                 # 将赛场坐标系的平移部分转为m
-                self.camera_to_field_matrix[:3, 3] /= 1000
+                self.camera_to_field_matrix[:3, 3] /= 1000  # mm毫米 to 米
 
-                print(self.camera_to_field_matrix)
-
+                # print("adjusted",self.field_to_camera_matrix)
+                self.vision_locator_init()
                 break
             else:
                 continue
 
+    def vision_locator_init(self):
+        self.vision_locator = Vision_Locator(intrinsic_matrix=self.intrinsic_matrix, dist_coeffs=self.distortion_matrix,
+                                             world_rvec=self.field_to_camera_R, world_tvec=self.field_to_camera_T,
+                                             extrinsic_matrix=self.field_to_camera_matrix)
+
+    def to_pcd(self, coordinates):
+        '''
+        将坐标变成cupy点云数据转为激光雷达坐标系的点云
+        Args:
+            coordinates: 坐标
+
+        Returns: filter_data : 赛场结果
+
+        '''
+        x, y, z = coordinates
+        pcd = o3d.geometry.PointCloud()
+        pcd.points = o3d.utility.Vector3dVector([[x, y, z]])
+        # 转换到相机坐标系
+        return pcd
+
+    def camera_results(self, box):
+        '''
+
+        Args:
+            box: 一个检测框的结果
+        Returns: 坐标值
+        限制x,y 为了保证在掩码图内
+        '''
+        x, y, w, h = box
+        # t1 = time.time()
+        # 原图中装甲板的中心下沿作为待仿射变化的点
+        camera_point = np.array([[[min(x, self.width), min(y, self.height)]]],
+                                dtype=np.float32)
+        print("camera_points", camera_point)
+        h = self.vision_locator.get_height(camera_point)
+        print("h:", h)
+        [x, y] = self.vision_locator.parser(camera_point)
+        y += 15
+        # results = self.vision_locator.post_process([x,y])
+        return [x, y, h]
+
+    def lidar_results(self, pcd, pc):
+        '''
+
+        Args:
+            pcd: 动态障碍物点云
+            pc: 视觉定位点[x,y,z]
+
+        Returns:动态障碍物中心点点云坐标值
+
+        '''
+        # 对pc点周围一定范围做最邻近搜索
+        return self.fast_search.find_nearest_point(pcd,pc)
+
+    def detection_main(self, box, pcd=None,if_lidar=False):
+        '''
+
+        Args:
+            box: yolo给的bbox，整车
+            pcd: 动态障碍物点云
+        Returns: 定位坐标值[x,y,z]
+
+        '''
+        if if_lidar == False:
+            return self.camera_results(box)
+        else:
+            [x, y, z] = self.camera_results(box)
+            nearest_point, min_d = self.lidar_results(pcd, [x, y, z])
+            return self.combine_result([x, y, z], nearest_point, min_d)
+
+    def combine_result(self, pc, pcd, d):
+        x, y, z = pc
+        x0, y0, z0 = pcd
+        return [0.1 * x + 0.9 * x0, 0.1 * y + 0.9 * y0, z0]
 
 
     # 从numpy转到cupy
     def np2cp(self, np_array):
         return cp.array(np_array)
+
     # 从cupy转到numpy
     def cp2np(self, cp_array):
         return cp.asnumpy(cp_array)
@@ -175,7 +291,8 @@ class Converter:
     def get_points(self, pcd):
         pc = np.asarray(pcd.points)
         return pc
-    def lidar_to_camera(self, pcd): # 对pcd直接修改，不用返回
+
+    def lidar_to_camera(self, pcd):  # 对pcd直接修改，不用返回
         # 修改pcd对象的points属性，保持原有的pcd对象不变
         # 激光雷达坐标系下的点云转换到相机坐标系下,传入的是一个open3d的pcd格式的点云，在里面直接修改pcd的points属性,返回修改好的pcd
         # 从open3d的pcd格式的点云中提取点云的坐标
@@ -202,10 +319,7 @@ class Converter:
         print('y: ', y.min(), y.max())
         print('z: ', z.min(), z.max())
 
-
-
-
-    def camera_to_lidar(self, pcd): # 对pcd直接修改，不用返回
+    def camera_to_lidar(self, pcd):  # 对pcd直接修改，不用返回
         # 相机坐标系下的点云转换到激光雷达坐标系下
         pc = self.get_points(pcd)
         pc = self.np2cp(pc)
@@ -236,16 +350,13 @@ class Converter:
         if -67.5 <= angle < -22.5:
             return 7
 
-
-    def camera_to_image(self, pc): # 传入的是一个open3d的pcd格式的点云，返回的是一个n*3的矩阵，n是点云的数量，是np.array格式的
+    def camera_to_image(self, pc):  # 传入的是一个open3d的pcd格式的点云，返回的是一个n*3的矩阵，n是点云的数量，是np.array格式的
         # 相机坐标系下的点云批量乘以内参矩阵，得到图像坐标系下的u,v和z,类似于深度图的生成
 
         # 从numpy变为cupy
         pc = self.np2cp(pc)
 
-
-
-        xyz = cp.dot(pc, self.intrinsic_matrix.T) # 得到的uvz是一个n*3的矩阵，n是点云的数量，是np.array格式的
+        xyz = cp.dot(pc, self.intrinsic_matrix.T)  # 得到的uvz是一个n*3的矩阵，n是点云的数量，是np.array格式的
         # 之前深度图没正确生成是因为没有提取z出来，导致原来的uv错误过大了
         # 要获得u,v,z，需要将xyz的第三列除以第三列
         uvz = cp.zeros(xyz.shape)
@@ -256,13 +367,12 @@ class Converter:
         # 从cupy变为numpy
         uvz = self.cp2np(uvz)
 
-
         return uvz
 
     # 将生成的uvz转换为深度图
-    def generate_depth_map(self, pc): # 传入的pcd,返回的是一个深度图
+    def generate_depth_map(self, pc):  # 传入的pcd,返回的是一个深度图
 
-        uvz = self.camera_to_image(pc) # 转换为uvz
+        uvz = self.camera_to_image(pc)  # 转换为uvz
         # 提取u,v,z
         u = uvz[:, 0]
         v = uvz[:, 1]
@@ -272,7 +382,7 @@ class Converter:
         print('Depth values range:', z.min(), z.max())
 
         # 按距离填充生成深度图，近距离覆盖远距离
-        width, height = self.width , self.height
+        width, height = self.width, self.height
         valid = np.bitwise_and(np.bitwise_and((u >= 0), (u < width)),
                                np.bitwise_and((v >= 0), (v < height)))
         img_z = np.full((height, width), np.inf)
@@ -281,12 +391,12 @@ class Converter:
             if valid[i]:
                 img_z[int(v[i]), int(u[i])] = min(img_z[int(v[i]), int(u[i])], z[i])
         # 小洞和“透射”消除
-        img_z_shift = np.array([img_z, \
-                                np.roll(img_z, 1, axis=0), \
-                                np.roll(img_z, -1, axis=0), \
-                                np.roll(img_z, 1, axis=1), \
+        img_z_shift = np.array([img_z,
+                                np.roll(img_z, 1, axis=0),
+                                np.roll(img_z, -1, axis=0),
+                                np.roll(img_z, 1, axis=1),
                                 np.roll(img_z, -1, axis=1)])
-        img_z = np.min(img_z_shift, axis=0) # img_z 是一个height*width的矩阵
+        img_z = np.min(img_z_shift, axis=0)  # img_z 是一个height*width的矩阵
         # 转为可以显示的图像
         img_z = np.where(img_z > self.max_depth, self.max_depth, img_z)
         img_z = cv2.normalize(img_z, None, 0, 200, cv2.NORM_MINMAX, cv2.CV_8U)
@@ -298,24 +408,22 @@ class Converter:
     def get_center_mid_distance(self, pcd):
         pc = self.get_points(pcd)
 
-
-
         # 判空
         if len(pc) == 0:
-            return [0,0,0]
+            return [0, 0, 0]
 
         pc = self.np2cp(pc)
         # 计算每个点的距离
-        distances = cp.linalg.norm(pc, axis=1)#求范数
+        distances = cp.linalg.norm(pc, axis=1)  #求范数
         # 找到中值点的索引
         center_idx = cp.argsort(distances)[len(distances) // 2]
         center = pc[center_idx]
         center = self.cp2np(center)
         return center
 
-
     # 获取投影后落在深度图矩形框内的点云 , 并不是反向映射，而是直接提取落在矩形框内的点云
-    def get_points_in_box(self, pc, box): # 传入的为pcd格式点云，box是一个元组，包含了矩形框的左上角和右下角的坐标：(min_u, min_v, max_u, max_v)，返回的是一个n*3的矩阵，n是点云的数量，是np.array格式的
+    def get_points_in_box(self, pc,
+                          box):  # 传入的为pcd格式点云，box是一个元组，包含了矩形框的左上角和右下角的坐标：(min_u, min_v, max_u, max_v)，返回的是一个n*3的矩阵，n是点云的数量，是np.array格式的
         # box是一个元组，包含了矩形框的左上角和右下角的坐标：(min_u, min_v, max_u, max_v)
         # 好像没有小孔成像的感觉，似乎并不是一个锥形
         min_u, min_v, max_u, max_v = box
@@ -333,14 +441,13 @@ class Converter:
         mask1 = cp.bitwise_and(u >= min_u, u <= max_u)
         mask2 = cp.bitwise_and(v >= min_v, v <= max_v)
         mask3 = cp.bitwise_and(mask1, mask2)
-        mask = cp.bitwise_and(mask3, z <= self.max_depth) # 滤除超出最大深度的点云
+        mask = cp.bitwise_and(mask3, z <= self.max_depth)  # 滤除超出最大深度的点云
         # 获得落在矩形框中的点云的点云的index,pcd.points才是要筛选的点云
         box_points = cp.asarray(pc)[mask]
 
         box_points = self.cp2np(box_points)
 
-
-        return box_points # 返回的是一个n*3的矩阵，n是点云的数量，是np.array格式的
+        return box_points  # 返回的是一个n*3的矩阵，n是点云的数量，是np.array格式的
 
     # 传入一个图片，手动选择一个矩形框，返回这个矩形框的坐标（min_u, min_v, max_u, max_v）
     def select_box(self, img):
@@ -357,7 +464,7 @@ class Converter:
         return box
 
     # 深拷贝点云
-    def copy_pcd(self,pcd):
+    def copy_pcd(self, pcd):
         new_pcd = o3d.geometry.PointCloud()
         new_pcd.points = o3d.utility.Vector3dVector(np.asarray(pcd.points))
         return new_pcd
@@ -471,12 +578,12 @@ class Converter:
         point = point[:3]
         return point
 
-
     # 传入两个点，返回两个点的距离
     def get_distance_between_2points(self, point1, point2):
         return np.linalg.norm(point1 - point2)
 
     # 传入一个点云，返回一个点云的中心点（x,y,z）
+
 
 # 创建一个类 ROICapture。
 # 在初始化方法中，通过 capture 获取一张照片 ， y确定n重选，并手动框选 ROI，将选框存入成员变量中。
@@ -484,8 +591,8 @@ class Converter:
 class ROISelector:
     def __init__(self, capture):
         self.capture = capture
-        self.hero_highland_points = [] # 用于存放英雄梯高的roi
-        self.sentinel_patrol_roi = [] # 用于存放哨兵巡逻区的roi
+        self.hero_highland_points = []  # 用于存放英雄梯高的roi
+        self.sentinel_patrol_roi = []  # 用于存放哨兵巡逻区的roi
         self.select_hero_highland_points()
         self.select_sentinel_patrol_points()
 
@@ -516,7 +623,6 @@ class ROISelector:
         result = cv2.pointPolygonTest(self.hero_highland_points, point, False)
         return result >= 0
 
-
     def select_sentinel_patrol_points(self):
         anchor = Anchor()
         pp = PointsPicker()
@@ -538,7 +644,6 @@ class ROISelector:
             else:
                 continue
 
-
     # 传入一个点，判断这个点是否在哨兵巡逻区内
     def is_point_in_sentinel_patrol(self, point):
         # 判断一个点是否在哨兵巡逻区内，边界点是四个点
@@ -546,19 +651,19 @@ class ROISelector:
         result = cv2.pointPolygonTest(self.sentinel_patrol_roi, point, False)
         return result >= 0
 
-    def get_sentinel_patrol_area_field_xyz (self , my_color):
+    def get_sentinel_patrol_area_field_xyz(self, my_color):
         # 传入颜色，返回预设的哨兵巡逻区的赛场坐标系的坐标
         if my_color == 'Red':
-            return np.array([22.63,9.42,0.5] )# 蓝方哨兵巡逻区赛场中心坐标，
+            return np.array([22.63, 9.42, 0.5])  # 蓝方哨兵巡逻区赛场中心坐标，
         else:
-            return np.array([5.68,6.54,0.5]) # 红方哨兵巡逻区赛场中心坐标，
+            return np.array([5.68, 6.54, 0.5])  # 红方哨兵巡逻区赛场中心坐标，
 
-    def get_hero_highland_area_field_xyz(self , my_color):
+    def get_hero_highland_area_field_xyz(self, my_color):
         # 传入颜色，返回预设的英雄梯高区的赛场坐标系的坐标
         if my_color == 'Red':
-            return np.array([23.10,2.76,1])
+            return np.array([23.10, 2.76, 1])
         else:
-            return np.array([5.22,13.20,1])
+            return np.array([5.22, 13.20, 1])
 
 # converter = Converter()
 # # 读取../pcd_data/points/1224_indoor1.pcd

@@ -125,13 +125,6 @@ class Lidar:
             # 如果在地面+5cm以上，才保留，在地面的点为-height_threshold,
             # pc = pc[pc[:, 2] > (-1 * self.height_threshold)]
 
-            # 配准开始
-            self.matcher = PCL_Matcher(pc)
-            self.tans_matrix = self.matcher.main()
-            self.clear = Clear(pc, self.tans_matrix)
-            pc = self.clear.compute_difference()
-
-
             # 存入点云队列
             with self.lock:
                 # 存入点云队列
@@ -146,6 +139,10 @@ class Lidar:
     # del
     def __del__(self):
         self.stop()
+
+    def substract_pcd(self,pcd):
+        self.pcdQueue.bg_rm(pcd)
+        return self.pcdQueue.bg_rm.processed_pcd
 
 # lidar = Lidar(main_cfg)
 # lidar.start()
