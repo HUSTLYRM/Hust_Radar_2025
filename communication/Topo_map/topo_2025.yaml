@@ -1,0 +1,569 @@
+
+global_color: 'Blue'
+
+decision_algorithm:
+  distance_weight: 0.5
+  health_weight: 0.3
+
+# 可视化部分地图信息 # TODO
+map_width: 1280
+map_height: 679
+
+# 车辆ID
+RedCarsID: [1, 2, 3, 4, 5, 6, 7]
+BlueCarsID: [101, 102, 103, 104, 105, 106, 107]
+
+block_num: 23
+
+nodes:
+- corners:
+  - - 581
+    - 89
+  - - 559
+    - 117
+  - - 460
+    - 247
+  - - 460
+    - 445
+  - - 483
+    - 502
+  - - 448
+    - 574
+  - - 709
+    - 578
+  - - 815
+    - 420
+  - - 817
+    - 229
+  - - 792
+    - 167
+  - - 794
+    - 141
+  - - 832
+    - 93
+  description: "中央大高地"
+  flag: 'red'
+  label: "攻击/防守/通道"
+  id: '1'
+
+- corners:
+  - - 251
+    - 181
+  - - 248
+    - 109
+  - - 444
+    - 110
+  - - 468
+    - 85
+  - - 493
+    - 96
+  - - 517
+    - 96
+  - - 546
+    - 52
+  - - 546
+    - 0
+  - - 147
+    - 1
+  - - 148
+    - 181
+  description: "红方左侧 L 型高地"
+  flag: 'red'
+  label: "攻击/防守/通道"
+  id: '2'
+
+- corners:
+  - - 148
+    - 178
+  - - 148
+    - 229
+  - - 252
+    - 233
+  - - 250
+    - 181
+  description: "红方左侧高地上坡区1"
+  flag: 'red'
+  label: "通道"
+  id: '3'
+
+- corners:
+  - - 444
+    - 112
+  - - 483
+    - 148
+  - - 507
+    - 111
+  - - 474
+    - 83
+  description: "红方左侧高地上坡区2"
+  flag: 'red'
+  label: "通道"
+  id: '4'
+
+- corners:
+  - - 259
+    - 118
+  - - 257
+    - 178
+  - - 412
+    - 182
+  - - 464
+    - 134
+  - - 434
+    - 113
+  description: "红方英雄吊射高地"
+  flag: 'red'
+  label: "攻击"
+  id: '5'
+
+- corners:
+  - - 279
+    - 293
+  - - 253
+    - 337
+  - - 280
+    - 378
+  - - 332
+    - 378
+  - - 353
+    - 335
+  - - 331
+    - 291
+  description: "红方堡垒"
+  flag: 'red'
+  label: "防守"
+  id: '6'
+
+- corners:
+  - - 266
+    - 524
+  - - 293
+    - 578
+  - - 579
+    - 581
+  - - 577
+    - 671
+  - - 181
+    - 668
+  - - 178
+    - 524
+  description: "红方右侧高地"
+  flag: 'red'
+  label: "通道/攻击"
+  id: '7'
+
+- corners:
+  - - 573
+    - 624
+  - - 577
+    - 672
+  - - 625
+    - 673
+  - - 624
+    - 626
+  description: "红方飞坡区"
+  flag: 'red'
+  label: "通道"
+  id: '8'
+
+- corners:
+  - - 466
+    - 450
+  - - 519
+    - 426
+  - - 532
+    - 459
+  - - 475
+    - 482
+  description: "红方中央高地狗洞"
+  flag: 'red'
+  label: "通道"
+  id: '9'
+
+- corners:
+  - - 720
+    - 621
+  - - 721
+    - 674
+  - - 1130
+    - 673
+  - - 1129
+    - 501
+  - - 1035
+    - 500
+  - - 1034
+    - 562
+  - - 833
+    - 562
+  - - 804
+    - 592
+  - - 783
+    - 577
+  - - 761
+    - 579
+  description: "蓝方左侧高地"
+  flag: 'blue'
+  label: "攻击/防守/通道"
+  id: '10'
+
+- corners:
+  - - 1028
+    - 442
+  - - 1030
+    - 496
+  - - 1132
+    - 496
+  - - 1131
+    - 442
+  description: "蓝方左侧高地上坡点1"
+  flag: 'blue'
+  label: "通道"
+  id: '11'
+
+- corners:
+  - - 804
+    - 593
+  - - 833
+    - 563
+  - - 797
+    - 527
+  - - 769
+    - 570
+  description: "蓝方左侧高地上坡点2"
+  flag: 'blue'
+  label: "通道"
+  id: '12'
+
+- corners:
+  - - 328
+    - 523
+  - - 356
+    - 575
+  - - 293
+    - 575
+  - - 266
+    - 523
+  description: "红方右侧高地上坡点"
+  flag: 'red'
+  label: "通道"
+  id: '13'
+
+- corners:
+  - - 943
+    - 292
+  - - 920
+    - 335
+  - - 943
+    - 379
+  - - 996
+    - 381
+  - - 1018
+    - 338
+  - - 994
+    - 296
+  description: "蓝方堡垒"
+  flag: 'blue'
+  label: "防守"
+  id: '14'
+
+- corners:
+  - - 1007
+    - 91
+  - - 1007
+    - 149
+  - - 1099
+    - 147
+  - - 1097
+    - 4
+  - - 702
+    - 3
+  - - 703
+    - 51
+  - - 702
+    - 89
+  description: "蓝方右侧高地"
+  flag: 'blue'
+  label: "通道/攻击"
+  id: '15'
+
+- corners:
+  - - 1007
+    - 90
+  - - 1009
+    - 149
+  - - 949
+    - 151
+  - - 920
+    - 95
+  description: "蓝方右侧高地上坡点"
+  flag: 'blue'
+  label: "通道"
+  id: '16'
+
+- corners:
+  - - 702
+    - 3
+  - - 648
+    - 3
+  - - 646
+    - 49
+  - - 704
+    - 49
+  description: "蓝方飞坡点"
+  flag: 'blue'
+  label: "通道"
+  id: '17'
+
+- corners:
+  - - 797
+    - 195
+  - - 807
+    - 216
+  - - 757
+    - 249
+  - - 744
+    - 211
+  description: "蓝方中央高地狗洞"
+  flag: 'blue'
+  label: "通道"
+  id: '18'
+
+- corners:
+  - - 801
+    - 443
+  - - 849
+    - 477
+  - - 737
+    - 617
+  - - 649
+    - 623
+  - - 638
+    - 591
+  - - 695
+    - 587
+  - - 709
+    - 575
+  description: "蓝方右侧通道"
+  flag: 'blue'
+  label: "通道"
+  id: '19'
+
+- corners:
+  - - 423
+    - 198
+  - - 468
+    - 240
+  - - 558
+    - 116
+  - - 569
+    - 94
+  - - 634
+    - 89
+  - - 627
+    - 53
+  - - 545
+    - 53
+  description: "红方右侧通道"
+  flag: 'red'
+  label: "通道"
+  id: '20'
+
+- corners:
+  - - 865
+    - 495
+  - - 820
+    - 535
+  - - 838
+    - 558
+  - - 1020
+    - 562
+  - - 1017
+    - 496
+  description: blue hero highland
+  flag: 'blue'
+  label: "防守/攻击"
+  id: '21'
+
+- corners:
+  - - 1077
+    - 300
+  - - 1075
+    - 375
+  - - 1170
+    - 428
+  - - 1231
+    - 390
+  - - 1232
+    - 285
+  - - 1168
+    - 249
+  description: b;ue base
+  flag: 'blue'
+  label: "防守/攻击"
+  id: '22'
+
+- corners:
+  - - 45
+    - 283
+  - - 44
+    - 391
+  - - 108
+    - 429
+  - - 198
+    - 374
+  - - 201
+    - 299
+  - - 109
+    - 248
+  description: red base
+  flag: 'red'
+  label: "防守/攻击"
+  id: '23'
+
+
+
+access_edges:
+  - target: '2'
+    source: '1'
+  - target: '3'
+    source: '1'
+  - target: '4'
+    source: '1'
+  - target: '5'
+    source: '1'
+  - target: '6'
+    source: '1'
+  - target: '7'
+    source: '1'
+  - target: '8'
+    source: '1'
+  - target: '9'
+    source: '1'
+  - target: '10'
+    source: '1'
+  - target: '11'
+    source: '1'
+  - target: '12'
+    source: '1'
+  - target: '13'
+    source: '1'
+  - target: '14'
+    source: '1'
+  - target: '15'
+    source: '1'
+  - target: '16'
+    source: '1'
+  - target: '17'
+    source: '1'
+  - target: '18'
+    source: '1'
+  - target: '19'
+    source: '1'
+  - target: '20'
+    source: '1'
+  - target: '21'
+    source: '1'
+  - target: '22'
+    source: '1'
+  - target: '23'
+    source: '1'
+  - target: '22'
+    source: '3'
+  - target: '21'
+    source: '5'
+  - target: '22'
+    source: '5'
+  - target: '20'
+    source: '6'
+  - target: '19'
+    source: '6'
+  - target: '18'
+    source: '7'
+  - target: '17'
+    source: '7'
+  - target: '16'
+    source: '8'
+  - target: '15'
+    source: '8'
+  - target: '14'
+    source: '9'
+  - target: '13'
+    source: '9'
+  - target: '12'
+    source: '10'
+  - target: '11'
+    source: '10'
+  - target: '10'
+    source: '11'
+  - target: '9'
+    source: '12'
+  - target: '8'
+    source: '12'
+  - target: '7'
+    source: '13'
+  - target: '6'
+    source: '13'
+  - target: '5'
+    source: '14'
+  - target: '4'
+    source: '14'
+  - target: '3'
+    source: '15'
+  - target: '2'
+    source: '15'
+  - target: '1'
+    source: '16'
+  - target: '2'
+    source: '16'
+  - target: '2'
+    source: '17'
+  - target: '1'
+    source: '17'
+
+attack_edges:
+  - source: '5'
+    target: '1'
+  - source: '6'
+    target: '1'
+  - source: '7'
+    target: '1'
+  - source: '2'
+    target: '1'
+  - source: '5'
+    target: '22'
+  - source: '6'
+    target: '22'
+  - source: '7'
+    target: '22'
+  - source: '10'
+    target: '1'
+  - source: '21'
+    target: '1'
+  - source: '14'
+    target: '1'
+  - source: '5'
+    target: '22'
+  - source: '7'
+    target: '9'
+  - source: '8'
+    target: '1'
+  - source: '8'
+    target: '9'
+  - source: '8'
+    target: '22'
+  - source: '14'
+    target: '1'
+  - source: '10'
+    target: '1'
+  - source: '9'
+    target: '7'
+  - source: '12'
+    target: '1'
+  - source: '8'
+    target: '16'
+  - source: '5'
+    target: '1'
+  - source: '2'
+    target: '17'
+  - source: '16'
+    target: '18'
