@@ -1,4 +1,5 @@
 import math
+import random
 from random import Random
 
 import numpy as np
@@ -7,13 +8,16 @@ import scipy.optimize as opt
 
 
 class BallisticTrajectory:
-    def __init__(self, hero_xyz, v0, wind_speed=0):
+    def __init__(self, hero_xyz, v0, wind_speed=0.0):
         """
         初始化目标坐标（base）和发射坐标（hero），包括z轴的高度，发射速度v0为常量
         """
         self.base_x = 25.591
         self.base_y = 7.5
         self.base_z = 1.0855
+        # self.base_x = 21.0
+        # self.base_y = 0.0
+        # self.base_z = 1.0855
         self.hero_x = hero_xyz[0]
         self.hero_y = hero_xyz[1]
         self.hero_z = hero_xyz[2]
@@ -21,11 +25,12 @@ class BallisticTrajectory:
         self.wind_speed = wind_speed  # 微风影响的速度，暂时没有具体实现
 
         # 物理常数
-        self.g = 9.8  # 重力加速度 (m/s^2)
+        self.g = 9.81  # 重力加速度 (m/s^2)
         self.rho = 1.225  # 空气密度 (kg/m³)
-        self.Cd = 0.47  # 空气阻力系数 (假设高尔夫球)
-        self.A = 0.003  # 高尔夫球的横截面积 (m²) 约为0.03m直径的球
-        self.m = 0.045  # 高尔夫球的质量 (kg) 约为45g
+        self.Cd = 0.47 * 1.169 * (2 * math.pi * 0.02125 * 0.02125) / 2 / 0.041 + 0.058  # 空气阻力系数 (假设高尔夫球)
+        # print(self.Cd)
+        self.A = 0.00528101279  # 高尔夫球的横截面积 (m²)
+        self.m = 0.0411  # 高尔夫球的质量 (kg)
 
     def equations(self, t, state):
         """
@@ -88,22 +93,20 @@ class BallisticTrajectory:
         查找最佳发射角度和水平角度（发射速度v0为常量）
         """
         if initial_guess is None:
-            initial_guess = [40, 0]
+            initial_guess = [25, 5]
         result = opt.minimize(self.objective, np.array(initial_guess), bounds=[(20, 70), (0, 360)])
-
-        # 返回最优的发射角度和水平角度
+        print(result)        # 返回最优的发射角度和水平角度
         theta_optimal, phi_optimal = result.x
         return theta_optimal, phi_optimal
 
 
 # 使用示例
 if __name__ == "__main__":
-    # 设置目标坐标和发射点坐标，包括z轴
-    base_x, base_y, base_z = 20, 0, 0.15  # 目标在20米远，y=0，z=5米
-    hero_xyz = [5, 6, 0,15]  # 发射点在原点，高度1米
+    # 设置目标坐标和发射点坐标，包括z轴# 目标在20米远，y=0，z=5米
+    hero_xyz = [5.4, 6.8 , 0.13]  # 发射点在原点，高度1米
     random_int = Random(10)
     # 发射速度
-    v0 = 16 + 0.1 * random_int.randint(a=-1,b=1)  # 固定发射速度 30 m/s
+    v0 = 15.5 # 固定发射速度 30 m/s
 
     # 创建 BallisticTrajectory 实例
     trajectory_solver = BallisticTrajectory(hero_xyz, v0)
