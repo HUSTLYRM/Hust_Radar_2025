@@ -171,6 +171,7 @@ if __name__ == '__main__':
                         new_h = xywh_box[3] / div_times
                         new_xywh_box = get_new_box(xyxy_box)
                         center = converter.detection_main(new_xywh_box,t=stamp)
+                        center = converter.vision_locator.post_process(center,global_my_color)
                         distance = converter.get_distance(center)
 
                         if distance == 0:
