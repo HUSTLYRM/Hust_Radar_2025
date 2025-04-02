@@ -18,7 +18,7 @@ import os
 mode = "video" # "video" or "camera" , 如果纯视频模式选用video,需要播放录制livox mid-70的rosbag获得点云信息
 save_video = False # 是否保存视频
 
-def get_new_box(box):
+def get_new_box(box,xywh):
     '''
 
     Args:
@@ -28,12 +28,24 @@ def get_new_box(box):
 
     '''
     x1,y1,x2,y2 = box
-    w = x2-x1
-    h = y2-y1
-    new_x1 = x1+w/2
-    new_y1 = y1+h/2+h/7
-    new_w = w
-    new_h = h
+    x ,y ,w1,h1 = xywh
+    # 如果（x，y）位于图像下半部分
+    if y > 3036 / 2:
+        # 计算新的x1和y1
+        w = x2-x1
+        h = y2-y1
+        new_x1 = x1+w/2
+        new_y1 = y1+h/2+h/3
+        new_w = w
+        new_h = h
+
+    else:
+        w = x2-x1
+        h = y2-y1
+        new_x1 = x1+w/2
+        new_y1 = y1+h/2+h/7
+        new_w = w
+        new_h = h
     return [new_x1,new_y1,w,h]
 
 
@@ -171,7 +183,6 @@ if __name__ == '__main__':
                         new_h = xywh_box[3] / div_times
                         new_xywh_box = get_new_box(xyxy_box)
                         center = converter.detection_main(new_xywh_box,t=stamp)
-                        center = converter.vision_locator.post_process(center,global_my_color)
                         distance = converter.get_distance(center)
 
                         if distance == 0:
