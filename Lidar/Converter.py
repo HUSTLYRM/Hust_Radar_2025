@@ -66,10 +66,25 @@ class Converter:
         enemy_Base = [26.153, -7.5, 1.043 + 0.2]
         enemy_Tower = [16.64, -2.4215, 1.331 + 0.118]
         # 2025
-        enemy_Base_25 = [25.591, -7.5, 1.043 + 0.2]
-        enemy_Tower_25 = [17.008, -3.643, 1.331 + 0.4]
-        self_FORTRESS = [6.600, -7.5, 0.25]
-        self_Tower_25 = [10.992, -11.357, 1.331 + 0.4]
+        enemy_Base_25 = [25.50932, -7.5, 1.043 + 0.2]
+        enemy_Tower_25 = [16.92483, -3.64301, 1.342 + 0.4]
+        self_FORTRESS = [6.600, -7.5, 0.151]
+        self_Tower_25 = [10.91891, -11.17852, 0.46769 + 0.4]# 我方前哨靠我侧血条底部
+        enemy_FORTRESS_Center = [21.4, -7.5, 0.151] # 敌方堡垒中心
+        enemy_FORTREES_RIGHT_FRONT = [20.83546, -8.47781, 0.0] # 敌方堡垒右前角
+        enemy_FORTRESS_RIGHT_BACK = [21.96454, -8.47781, 0.0] # 敌方堡垒右后角
+        DAFU_RIGHT_POINT = [12.95695, -7.848655, 0.301] # 大幅地标右侧
+        DAFU_LEFT_POINT = [12.95695, -6.90371, 0.301] # 大幅地标左侧
+        DAFU_RM_RIGHT = [12.98884, -7.94548, 0.301] # 大幅RM标右侧
+        DAFU_RM_LEFT = [14.44548, -6.48884, 0.301] # 大幅RM标左侧
+        # test
+        self.point_1 = [9.553, -6.08209, 0.2]
+        self.point_2 = [10.018, -9.92556, 0.2]
+        self.point_3= [17.77462, -11.94595, 0.8]
+        self.point_4 = [20.35278, -2.168, 0.30176]
+
+
+
 
 
         self.yaml_path = 'points.yaml'
@@ -80,6 +95,8 @@ class Converter:
         self.real_points = [self_R0TL, self_R0TR, self_Tower, enemy_Base, enemy_Tower]
         # 2025
         self.real_points_25 = [enemy_Base_25, enemy_Tower_25, self_FORTRESS, self_Tower_25]
+        #test
+        self.test_points = [enemy_FORTREES_RIGHT_FRONT, enemy_FORTRESS_RIGHT_BACK,self.point_3,self.point_4]
         # 获取相机坐标系到激光雷达坐标系的外参
         # 获取R和T，并将它们转换为NumPy数组
         self.R = np.array(data_loader['calib']['extrinsic']['R']['data']).reshape(
@@ -134,7 +151,7 @@ class Converter:
         pp = PointsPicker()
         while True:
             # 获得一张图片
-            image = capture.get_frame() if capture is not None else img
+            image = capture.get_frame()
             # 把image resize为1920*1080
             show_image = cv2.resize(image, (1920, 1080))
             cv2.imshow("clear press y else n", show_image)
@@ -142,7 +159,7 @@ class Converter:
             key = cv2.waitKey(0)
             if key == ord('y'):
                 pp.caller(image, anchor)
-                true_points = np.array(self.real_points, dtype=np.float32)
+                true_points = np.array(self.test_points, dtype=np.float32)
                 pixel_points = np.array(anchor.vertexes, dtype=np.float32)
                 print(pixel_points)
                 _, rotation_vector, translation_vector = cv2.solvePnP(true_points, pixel_points,
@@ -165,17 +182,17 @@ class Converter:
                 self.camera_to_field_matrix[:3, 3] /= 1000  # mm毫米 to 米
 
                 # print("adjusted",self.field_to_camera_matrix)
-                self.vision_locator_init()
+                self.vision_locator_init(image)
                 break
             else:
                 continue
     ###-------------------------------------2025---------------------------------------###
-    def vision_locator_init(self):
+    def vision_locator_init(self,img=None):
         self.vision_locator = Vision_Locator(intrinsic_matrix=self.intrinsic_matrix,
                                              dist_coeffs=self.distortion_matrix,
                                              world_rvec=self.field_to_camera_R, 
                                              world_tvec=self.field_to_camera_T,
-                                             extrinsic_matrix=self.field_to_camera_matrix)
+                                             extrinsic_matrix=self.field_to_camera_matrix,img=img)
 
 
     def camera_results(self, box,t):
