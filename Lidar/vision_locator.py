@@ -4,7 +4,7 @@ import cv2
 
 
 class Vision_Locator:
-    def __init__(self, intrinsic_matrix, dist_coeffs, world_rvec, world_tvec, extrinsic_matrix):
+    def __init__(self, intrinsic_matrix, dist_coeffs, world_rvec, world_tvec, extrinsic_matrix,img = None):
         """
         初始�? Vision_Locator �?
         :param intrinsic_matrix: 相机的内参矩�? (4x4)
@@ -17,47 +17,47 @@ class Vision_Locator:
         self.world_rvec = world_rvec
         self.world_tvec = world_tvec
 
-        self.minimap = cv2.imread("C:\Files\E\Radar\hust_radar_2025\Lidar\RMUC25_map.jpg")
+        self.minimap = cv2.imread('/home/nvidia/RadarWorkspace/code/Hust_Radar_2025-main/Lidar/RMUC25_map.jpg')
 
         self.points_map = {}  # 用于存放区域的信�?
         self.points_map["Center_high"] = Parser_Points("Center_high", intrinsic_matrix, dist_coeffs, world_rvec,
-                                                       world_tvec, extrinsic_matrix)
+                                                       world_tvec, extrinsic_matrix,img)
 
         self.points_map["Enemy_Hero_High"] = Parser_Points("Enemy_Hero_High", intrinsic_matrix, dist_coeffs, world_rvec,
                                                            world_tvec,
-                                                           extrinsic_matrix)
+                                                           extrinsic_matrix,img)
         self.points_map["Self_Hero_High"] = Parser_Points("Self_Hero_High", intrinsic_matrix, dist_coeffs, world_rvec,
-                                                          world_tvec, extrinsic_matrix)
+                                                          world_tvec, extrinsic_matrix,img)
 
         self.points_map["Enemy_Left_High"] = Parser_Points("Enemy_Left_High", intrinsic_matrix, dist_coeffs, world_rvec,
-                                                           world_tvec, extrinsic_matrix)
+                                                           world_tvec, extrinsic_matrix,img)
         self.points_map["Self_Left_High"] = Parser_Points("Self_Left_High", intrinsic_matrix, dist_coeffs, world_rvec,
-                                                          world_tvec, extrinsic_matrix)
+                                                          world_tvec, extrinsic_matrix,img)
 
         self.points_map["Enemy_Slope"] = Parser_Points("Enemy_Slope", intrinsic_matrix, dist_coeffs, world_rvec,
-                                                       world_tvec, extrinsic_matrix)
+                                                       world_tvec, extrinsic_matrix,img)
         self.points_map["Self_Slope"] = Parser_Points("Self_Slope", intrinsic_matrix,
                                                       dist_coeffs, world_rvec, world_tvec,
-                                                      extrinsic_matrix)
+                                                      extrinsic_matrix,img)
 
         self.points_map["Enemy_Left_High_Slope"] = Parser_Points("Enemy_Left_High_Slope", intrinsic_matrix,
                                                                  dist_coeffs, world_rvec, world_tvec,
-                                                                 extrinsic_matrix)
+                                                                 extrinsic_matrix,img)
 
         self.points_map["Enemy_Right_High"] = Parser_Points("Enemy_Right_High", intrinsic_matrix, dist_coeffs,
                                                             world_rvec,
-                                                            world_tvec, extrinsic_matrix)
+                                                            world_tvec, extrinsic_matrix,img)
         self.points_map["Self_Right_High"] = Parser_Points("Self_Right_High", intrinsic_matrix, dist_coeffs, world_rvec,
-                                                           world_tvec, extrinsic_matrix)
+                                                           world_tvec, extrinsic_matrix,img)
 
         self.points_map["Self_Fortress"] = Parser_Points("Self_Fortress", intrinsic_matrix, dist_coeffs,
-                                                         world_rvec, world_tvec, extrinsic_matrix)
+                                                         world_rvec, world_tvec, extrinsic_matrix,img)
         self.points_map["Enemy_Fortress"] = Parser_Points("Enemy_Fortress", intrinsic_matrix, dist_coeffs, world_rvec,
-                                                          world_tvec, extrinsic_matrix)
+                                                          world_tvec, extrinsic_matrix,img)
 
         self.points_map["Self_Narrow_Path"] = Parser_Points("Self_Narrow_Path", intrinsic_matrix, dist_coeffs,
                                                             world_rvec,
-                                                            world_tvec, extrinsic_matrix)
+                                                            world_tvec, extrinsic_matrix,img)
 
         self.points_map["Center_high"].heights = 0.3
 
@@ -66,8 +66,8 @@ class Vision_Locator:
 
         self.points_map["Enemy_Left_High_Slope"].heights = 0.08
 
-        self.points_map["Enemy_Fortress"].heights = 0.25
-        self.points_map["Self_Fortress"].heights = 0.25
+        self.points_map["Enemy_Fortress"].heights = 0.151
+        self.points_map["Self_Fortress"].heights = 0.151
 
         self.points_map["Enemy_Hero_High"].heights = 0.6
         self.points_map["Self_Hero_High"].heights = 0.6
@@ -81,9 +81,9 @@ class Vision_Locator:
         self.points_map["Self_Narrow_Path"].heights = 0.0
 
         # 计算并存储透视变换矩阵
-        self.h_list = [0.0, 0.08, 0.2, 0.25, 0.325, 0.3, 0.6]
+        self.h_list = [0.0, 0.08, 0.151, 0.2, 0.325, 0.3, 0.6]
         self.Perspective_matrix = self._calculate_perspective_matrix()
-        print("self_matrix", self.Perspective_matrix)
+        # print("self_matrix", self.Perspective_matrix)
 
         # 计算外参矩阵 [R | t]
         self.extrinsic_matrix = extrinsic_matrix
@@ -155,7 +155,6 @@ class Vision_Locator:
                 [12, -8],  # �?4
             ], dtype=np.float32)
 
-            # 获取从图像坐标到世界坐标系的透视变换矩阵
             Perspective_matrix = cv2.getPerspectiveTransform(image_points.reshape(-1, 2), world_points2D)
 
             # 应用透视变换，将输入的图像坐标投影到世界坐标
@@ -221,10 +220,10 @@ class Vision_Locator:
 
 
 class Parser_Points():
-    def __init__(self, name, intrinsic_matrix, dist_coeffs, world_rvec, world_tvec, extrinsic_matrix):
+    def __init__(self, name, intrinsic_matrix, dist_coeffs, world_rvec, world_tvec, extrinsic_matrix,img = None):
         self.name = name
-        self.debug_img = cv2.imread("C:\Files\E\Radar\debug_img.png")
-        self.points_path = 'C:/Files/E/Radar/hust_radar_2025/Lidar/rm25_points.yaml'  # TODO
+        self.debug_img = img
+        self.points_path = '/home/nvidia/RadarWorkspace/code/Hust_Radar_2025-main/Lidar/rm25_points.yaml'  # TODO
         self.extrinsic_matrix = extrinsic_matrix
         self.K = intrinsic_matrix
         self.dist_coeffs = dist_coeffs
@@ -262,7 +261,7 @@ class Parser_Points():
     def world_to_camera(self):
         # 3D世界坐标系点�?2D相机坐标系的投影
         points = np.array(self.points_3d, dtype=np.float64).reshape(-1, 1, 3)
-        print("points", points)
+        # print("points", points)
         temp_2d, _ = cv2.projectPoints(
             points,
             self.world_rvec,
@@ -274,7 +273,7 @@ class Parser_Points():
 
         results = self.float2int(temp_2d.reshape(-1, 2))
         # print("region _results", results)
-        self.region_vis(results)
+        # self.region_vis(results)
         return results
 
     def _ensure_results_in_image(self, results):
@@ -314,8 +313,9 @@ class Parser_Points():
         img = cv2.resize(img, [1000, 640])
         cv2.imshow(self.name, img)
         # 保存图片 文件名是name
-        cv2.imwrite(f"{self.name}.png", img)
-        cv2.waitKey(1)
+        file_name ="/home/nvidia/RadarWorkspace/code/Hust_Radar_2025-main/debug_img/"+self.name+ "_25" + ".png"
+        cv2.imwrite(file_name, img)
+        cv2.waitKey(1000)
 
     def return_height(self, input_point):
         # 判断点是否在多边形内
