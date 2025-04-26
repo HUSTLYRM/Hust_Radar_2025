@@ -1,0 +1,23 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>pclmatcher</name>
+  <version>0.0.1</version>
+  <description>A package for matching LiDAR point clouds to a PCD map using PCL.</description>
+
+  <maintainer email="your_email@example.com">Your Name</maintainer>
+  <license>BSD</license>
+
+  <depend>roscpp</depend>
+  <depend>sensor_msgs</depend>
+  <depend>pcl_ros</depend>
+  <depend>visualization_msgs</depend>
+  <build_depend>pcl_conversions</build_depend>
+  <build_depend>geometry_msgs</build_depend>
+  <build_export_depend>pcl_conversions</build_export_depend>
+
+  <buildtool_depend>catkin</buildtool_depend>
+
+  <export>
+    <build_type>catkin</build_type>
+  </export>
+</package>

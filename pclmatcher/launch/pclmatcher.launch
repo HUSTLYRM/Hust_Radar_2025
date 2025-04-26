@@ -1,0 +1,4 @@
+<launch>
+    <node name="pcl_matcher_node" pkg="pclmatcher" type="pclmatcher_node" output="screen" />
+    <node name="rviz" pkg="rviz" type="rviz" args="-d $(find pclmatcher)/cfg/rm2024.rviz" output="screen"/>
+</launch>

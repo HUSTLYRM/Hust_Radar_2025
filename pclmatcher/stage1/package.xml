@@ -1,0 +1,19 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>my_ros_project</name>
+  <version>0.0.0</version>
+  <description>The my_ros_project package</description>
+
+  <maintainer email="youremail@example.com">Your Name</maintainer>
+
+  <license>TODO</license>
+
+  <depend>roscpp</depend>
+  <depend>std_msgs</depend>
+  <depend>sensor_msgs</depend>
+  <depend>cv_bridge</depend>
+  <depend>image_transport</depend>
+  <depend>geometry_msgs</depend>
+
+  <buildtool_depend>catkin</buildtool_depend>
+</package>
