@@ -107,6 +107,7 @@ class Detector:
             print("detect start function")
             self.working_flag = True  # 先设True再开始，否则开始太快检测为False直接结束了
             self.threading.start()
+            print("start")
 
     # 关闭线程
     def stop(self):
@@ -221,28 +222,29 @@ class Detector:
 
     # 总的推理
     def infer(self, frame): # 输入原图，返回推理结果
-        # print("infer")
+        print("infer")
         # frame判空
         if frame is None:
-            # print("No frame!")
+            print("No frame!")
             return None , None
 
         # # 展示frame的尺寸
-        # print(frame.shape)
+        print(frame.shape)
 
 
         # 获取推理结果
         # print("track_infer")
         time_stamp = time.time()
         results = self.track_infer(frame)
-        # print("after track")
+        print("after track")
 
 
 
         # 一阶段results判空
         if self.is_results_empty(results):
-            # print("No results!")
+            print("No results!")
             return frame , None
+        print(results)
 
 
         exist_armor = [-1] * 12 # armor number映射Track_id
@@ -413,11 +415,13 @@ class Detector:
             start_time = now
             print("in fps",fps)
             frame = capture.get_frame()
+            print("frame")
             if frame is not None:
                 if self.is_record:
                     self.frame_queue.put(np.copy(frame))
                     self.get_first_frame_flag = True
                 # 执行目标检测
+                print("infer")
                 infer_result = self.infer(frame)
 
                 if infer_result is not None:
