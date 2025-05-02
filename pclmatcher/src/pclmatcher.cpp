@@ -29,6 +29,7 @@ PCLMatcher::PCLMatcher(ros::NodeHandle& nh) : nh_(nh) {
     adjusted_pub = nh.advertise<sensor_msgs::PointCloud2>("adjusted_cloud", 10);
     icpadjusted_pub = nh.advertise<sensor_msgs::PointCloud2>("icpadjusted_cloud", 10);
     obstaclecloud_pub = nh.advertise<sensor_msgs::PointCloud2>("obstacle_cloud",10);
+    engine_special_pub = nh.advertise<sensor_msgs::PointCloud2>("engine_special_cloud", 10);
 
     cumulative_transform = Eigen::Matrix4f::Identity();
     icp_thread = std::thread(&PCLMatcher::icp_run,this);
@@ -295,6 +296,14 @@ void PCLMatcher::publishCentroidMarkers(const ros::Publisher& marker_pub, const 
     marker_pub.publish(points);
 }
 
+void PCLMatcher::publishEngineSpecialPCD(const pcl::PointCloud<pcl::PointXYZ>::Ptr& cloud, const ros::Publisher& engine_special_pub) {
+    sensor_msgs::PointCloud2 ros_cloud;
+    pcl::toROSMsg(*cloud, ros_cloud);
+    ros_cloud.header.frame_id = "rm_frame";
+    ros_cloud.header.stamp = ros::Time::now();
+    engine_special_pub.publish(ros_cloud);
+}
+
 void PCLMatcher::upsampleVoxelGrid(pcl::PointCloud<pcl::PointXYZ>::Ptr& cloud, float leaf_size, int points_per_voxel) 
 {
     auto start_time = std::chrono::high_resolution_clock::now();
@@ -404,6 +413,38 @@ void PCLMatcher::removeOverlappingPoints(pcl::PointCloud<pcl::PointXYZ>::Ptr& li
     upsampleVoxelGrid(dynamic_obstacles, 0.01, 500); // 每个体素中生成10个点
     std::cout<<"length" << dynamic_obstacles->points.size()<<std::endl;
     
+    // 找到工程特殊点云
+    pcl::PassThrough<pcl::PointXYZ> pass_y;
+    pcl::PassThrough<pcl::PointXYZ> pass_x;
+
+    // 对动态障碍物点云进行第一次滤波
+    pcl::PointCloud<pcl::PointXYZ>::Ptr pass_engine_1(new pcl::PointCloud<pcl::PointXYZ>);
+    pass_y.setInputCloud(dynamic_obstacles); // 
+    pass_y.setFilterFieldName("y");
+    pass_y.setFilterLimits(-9, -5);
+    pass_y.filter(*pass_engine_1);
+
+    pass_x.setInputCloud(pass_engine_1);
+    pass_x.setFilterFieldName("x");
+    pass_x.setFilterLimits(13.2, 15.5);
+    pass_x.filter(*pass_engine_1);
+
+    // 对动态障碍物点云进行第二次滤波
+    pcl::PointCloud<pcl::PointXYZ>::Ptr pass_engine_2(new pcl::PointCloud<pcl::PointXYZ>);
+    pass_y.setInputCloud(dynamic_obstacles);
+    pass_y.setFilterFieldName("y");
+    pass_y.setFilterLimits(-6, -8);
+    pass_y.filter(*pass_engine_2);
+
+    pass_x.setInputCloud(pass_engine_2);
+    pass_x.setFilterFieldName("x");
+    pass_x.setFilterLimits(18.2, 20.5);
+    pass_x.filter(*pass_engine_2);
+
+    mergePointClouds(pass_engine_1, pass_engine_2); // 合并点云
+    publishEngineSpecialPCD(pass_engine_1, engine_special_pub); // 发布工程特征点云
+
+
     sensor_msgs::PointCloud2 ros_dynamic_obstacles;
     pcl::toROSMsg(*dynamic_obstacles, ros_dynamic_obstacles);
     ros_dynamic_obstacles.header.frame_id = "livox_frame";
