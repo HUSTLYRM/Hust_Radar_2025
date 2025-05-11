@@ -32,10 +32,35 @@ def visualize(input_points):
         print("Error")
 
 
-def get_new_box(xywh_box):
-    div_times = 4
-    new_w = xywh_box[2] / div_times
-    new_h = xywh_box[3] / div_times
-    # Generate new bounding box
-    new_xywh_box = [xywh_box[0], xywh_box[1] + new_h, new_w, new_h]
-    return new_xywh_box
+def get_new_box(xyxy,xywh):
+    '''
+
+    Args:
+        box: XYXY
+
+    Returns:NEW BOX [x1,y1,x2,y2]
+
+    '''
+    x1,y1,x2,y2 = xyxy
+    x ,y ,w1,h1 = xywh
+    # 找到bbox中心最下方的点
+    new_x = x+w1/2
+    new_y = y2
+    # 如果（x，y）位于图像下半部分
+    if y > 3036 / 2:
+        # 计算新的x1和y1
+        w = x2-x1
+        h = y2-y1
+        new_x1 = x1+w/2
+        new_y1 = y1+h/2+h/3
+        new_w = w
+        new_h = h
+
+    else:
+        w = x2-x1
+        h = y2-y1
+        new_x1 = x1+w/2
+        new_y1 = y1+h/2+h/7
+        new_w = w
+        new_h = h
+    return [new_x,new_y,new_x1,new_y1]
