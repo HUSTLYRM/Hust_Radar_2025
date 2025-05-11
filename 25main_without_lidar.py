@@ -18,17 +18,20 @@ import os
 mode = "video" # "video" or "camera" , 如果纯视频模式选用video,需要播放录制livox mid-70的rosbag获得点云信息
 save_video = False # 是否保存视频
 
-def get_new_box(box,xywh):
+def get_new_box(xyxy,xywh):
     '''
 
     Args:
         box: XYXY
 
-    Returns:NEW BOX xywh
+    Returns:NEW BOX [x1,y1,x2,y2]
 
     '''
-    x1,y1,x2,y2 = box
+    x1,y1,x2,y2 = xyxy
     x ,y ,w1,h1 = xywh
+    # 找到bbox中心最下方的点
+    new_x = x+w1/2
+    new_y = y2
     # 如果（x，y）位于图像下半部分
     if y > 3036 / 2:
         # 计算新的x1和y1
@@ -46,8 +49,7 @@ def get_new_box(box,xywh):
         new_y1 = y1+h/2+h/7
         new_w = w
         new_h = h
-    return [new_x1,new_y1,w,h]
-
+    return [new_x,new_y,new_x1,new_y1]
 
 
 if __name__ == '__main__':
