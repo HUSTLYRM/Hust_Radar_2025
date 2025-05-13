@@ -1,10 +1,10 @@
+import sys
+sys.path.append("E:/Radar/hust_radar_2025/communication")
+sys.path.append("E:/Radar/hust_radar_2025")
 from .Sender import Sender
 from .Receiver import Receiver
 from .Topo_map.topo_lidar import *
-import sys
 from random import randint
-
-sys.path.append("E:/Radar/Hust-Radar-2024-main")
 import multiprocessing
 import threading
 import time
@@ -15,7 +15,8 @@ import cv2
 from Log.Log import RadarLog
 import copy
 from Tools.Tools import Tools
-from assit_yaw_pitch import BallisticTrajectory
+from .assit_yaw_pitch import BallisticTrajectory
+from .alert_our_hero import is_point_nearby_numpy
 
 
 # from .assit_yaw_pitch import Hero_Assit
@@ -126,6 +127,7 @@ class Messager:
         self.hero_v0 = 16 + 0.1 * randint(a=-1, b=1)
         self.hero_assit = None
         self.is_assit_hero =False
+        self.secure_our_hero = False
 
         # 发送小地图历史记录
         self.send_map_infos = [[0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0]]  # 哨兵全局感知
@@ -165,6 +167,8 @@ class Messager:
 
         # flag
         self.working_flag = False
+        # engine
+        self.engine_location = []
 
     # 判断是否为下一秒
     def is_next_second(self):
@@ -353,6 +357,39 @@ class Messager:
         self.send_hero_assit_info["yaw"] = yaw
         self.is_assit_hero = True
 
+    def generate_send_map_infos(self, enemy_infos):
+        send_map_infos = [[0, 0] for _ in range(len(self.enemy_id))]
+        for enemy_car_info in enemy_infos:
+            # 提取car_id和field_xyz
+            track_id, car_id, field_xyz, is_valid = enemy_car_info[0], enemy_car_info[1], enemy_car_info[4], \
+                enemy_car_info[6]
+            # if track_id == -1: # 如果track_id为-1，说明没有检测到，不发送
+            #     # print("not init continue")
+            #     continue
+            if field_xyz == []:
+                # self.logger.log("send map field_xyz is empty")
+                continue
+            # 将所有信息打印
+            # print("car_id:",car_id , "field_xyz:",field_xyz , "is_valid:",is_valid)
+            # 提取x和y
+            x, y = field_xyz[0], field_xyz[1]
+            # x的控制边界，让他在[0,28]m , y控制在[0,15]m
+            x = max(0, min(x, 28))
+            y = max(0, min(y, 15))
+
+            # 将所有车的x，y信息打包
+            for i, enemy_id in enumerate(self.enemy_id):
+                if car_id == enemy_id:
+                    send_map_infos[i] = [x, y]
+                    break
+        return send_map_infos
+
+    def alert_our_hero(self):
+        if self.our_hero_xyz is None:
+            return
+        self.secure_our_hero = is_point_nearby_numpy(self.our_hero_xyz, self.generate_send_map_infos(self.enemy_car_infos))
+
+
 
 
 
@@ -371,6 +408,32 @@ class Messager:
     # 更新剩余时间
     # def update_time_left(self):
     #     self.time_left = self.receiver.get_time_left()
+
+    # update engine state:
+    def update_engine_state(self, engine_state):
+        # 解析engine_state
+        # print("update engine state")
+        self.logger.log(f"update engine state{engine_state}")
+        if engine_state == []:
+            return
+        # 解析engine_state
+        with self.map_lock:
+            if engine_state.len() == 1 :
+                for i,id in enumerate(self.enemy_id):
+
+                        self.send_map_infos[i] = engine_state.values()[0]
+            else:
+                for id, value in engine_state:
+                    # TODO
+                    if id == 2 and self.time_left > 330 :
+                        for i,id in enumerate(self.enemy_id):
+                            if id == 2 or id == 102:
+                                self.send_map_infos[i] = value
+                    elif id == 1 and self.time_left <= 330:
+                        for i,id in enumerate(self.enemy_id):
+                            if id == 2 or id == 102:
+                                self.send_map_infos[i] = value
+
 
     # 更新敌方车辆信息
     def update_enemy_car_infos(self, enemy_car_infos):
@@ -420,6 +483,11 @@ class Messager:
     def send_hero_assit(self):
         if self.is_assit_hero:
             self.sender.send_hero_assit_info(self.send_hero_assit_info,self.is_assit_hero)
+
+    def send_alert_hero(self):
+        if self.secure_our_hero:
+            self.sender.send_alert_our_hero(self.secure_our_hero)
+
 
 
     # 更新flag，将共享内存中更新的信息解析，更新本地flag
@@ -580,6 +648,7 @@ class Messager:
             # self.logger.log("enter hero alert check")
             self.hero_alert(show_map_image)
             self.send_hero_assit()
+            self.send_alert_hero()
             # self.logger.log("exit hero alert check")
             # except Exception as e:
             #     self.logger.log(f"Hero alert error: {e}")
@@ -592,11 +661,11 @@ class Messager:
             # self.logger.log("send double effect decision")
 
             # 发送哨兵预警信息
-            self.send_sentinel_alert_hero()
+            # self.send_sentinel_alert_hero()
             # self.logger.log("send sentry alert hero")
 
             # 发送英雄辅助吊射信息
-            self.send_hero_assit()
+            # self.send_hero_assit()
 
             # 发送步兵双倍易伤信息
             self.send_double_effect_times_to_car()
@@ -651,17 +720,7 @@ class Messager:
                         self.send_map_infos[i] = [x, y]
                         self.send_map_info_is_latest[i] = 5
                         break
-                # 控制send_map的通信频率在10Hz
-                # time_interval = time.time() - self.last_send_map_time
-                # print("time_interval:", time_interval)
-                # if is_valid:
-                #     if  time_interval < 0.1: # 如果时间间隔小于0.1s，等待至0.1s
-                #         # print("sleep time:",0.1 - time_interval)
-                #         time.sleep(0.1 - time_interval)
-                # else:
-                #     if time.time() - self.last_send_time_map[car_id] < 0.40:
-                #         # print("not valid ,sleep", 0.45 - (time.time() - self.last_send_time_map[car_id]) )
-                #         continue
+
             # 一秒钟记录一次状态
             if self.is_next_second():
                 self.status_logger.log(
@@ -675,45 +734,9 @@ class Messager:
                 self.send_map(self.send_map_infos)
             # print("send_map" ,  car_id , x , y)
             # 控制发送频率为5hz
-            # self.frequency_control(self.last_send_map_time , 5)
-            # 更新时间
 
-            # self.last_send_time_map[car_id] = time.time()
-            # if (car_id == 1 or car_id == 101 )  and is_valid: # 硬编码,要改
-            #     if time.time() - self.last_send_double_effect_time < 10:
-            #         continue
-            #     if 24>=x>=17:
-            #         self.hero_enter_times += 1
-            #     else:
-            #         self.hero_enter_times = 0
-            #
-            #     if self.hero_enter_times >= 3:
-            #         print("send double")
-            #         # self.sender.send_radar_double_effect_info(1)
-            #         # self.double_effect_times += 1
-            #         time.sleep(0.01)
-            #         self.sender.send_radar_double_effect_info(2)
-            #         self.logger.log('Sent double effect info: 2')
-            #         time.sleep(0.05)
-            #         self.sender.send_radar_double_effect_info(1)
-            #         self.logger.log('Sent double effect info: 1')
-            #         # self.double_effect_times += 1
-            #         self.last_send_double_effect_time = time.time()
-            # # 发送不可信的车辆信息
-            # for enemy_car_info in not_valid_enemy_car_infos:
-            #     car_id , field_xyz = enemy_car_info[0] , enemy_car_info[3]
-            #     x , y = field_xyz[0] , field_xyz[1]
-            #     x = max(0,x)
-            #     x = min(x,28)
-            #     y= min(15,y)
-            #     y = max(0,y)
-            #     # 因为红方车辆id为1-5，7，蓝方为101-105，107，所以整除100，取余数，就可以得到1-5，7 , 再减1，就可以得到0-5
-            #     time_interval = time.time() - self.last_send_time_list[(car_id % 100)-1]
-            #     if  time_interval < 0.35:
-            #         time.sleep(0.35 - time_interval)
-            #     self.send_map(car_id , x , y)
-            #     self.last_send_time_list[(car_id % 100)-1] = time.time()
-            # print("debug messager main loop")
 
         if not self.receiver.working_flag:
             self.receiver.stop()
+
+
