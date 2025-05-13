@@ -297,6 +297,34 @@ class Sender:
         tx_buff = self.generate_sentinel_field_info(parse_list)
         self.send_info(tx_buff)
 
+    def generate_sentry_perception_info(self,infos):
+        cmd_id = struct.pack('H', 0x0301)
+        data_cmd_id = struct.pack('H', 0x0201)
+        sender_id = struct.pack('H', self.my_id)
+        receiver_id = struct.pack('H', self.my_sentinel_id)
+        data = b''
+        for info in infos:
+            x = int(info[0] * 100)
+            y = int(info[1] * 100)
+            # print("map ",x,y)
+            data += struct.pack('HH', x, y)  # 单位转换为cm
+
+        data_len = len(data)
+        # print("data len ",data_len)
+
+        frame_head = self.get_frame_header(data_len)
+
+        tx_buff = frame_head + cmd_id + data
+
+        frame_tail = self.get_frame_tail(tx_buff)
+
+        tx_buff += frame_tail
+
+        return tx_buff
+
+    def send_sentry_perception_info(self,infos):
+        tx_buff = self.generate_sentry_perception_info(infos)
+        self.send_info(tx_buff)
 
     # 机器人交互数据0x0301共通部分，后面的方法是data_cmd_id的不同
     def generate_robot_interact_info(self):
@@ -306,7 +334,6 @@ class Sender:
     def send_sentinel_alert_info(self , carID , distance , quadrant):
         tx_buff = self.generate_sentinel_alert_info(carID , distance , quadrant)
         # print(tx_buff)
-
         self.send_info(tx_buff)
 
     # (2)组织哨兵赛场坐标信息 , 中间方法 , 传入car_infos , len(car_infos) = 7 ,按顺序组织 , 必须补全7份信息
@@ -455,4 +482,30 @@ cmd_id 和 frame_tail 的 9 个字节以及数据段头结构的 6 个字节，�
     def send_hero_assit_info(self, send_hero_assit_info,is_assit):
         tx_buff = self.generate_hero_assit_info(send_hero_assit_info,is_assit)
         self.send_info(tx_buff)
+
+    def generate_alert_our_hero(self, is_alert_our_hero):
+        cmd_id = struct.pack('H', 0x0301)
+        data_cmd_id = struct.pack('H', 0x0203)
+        sender_id = struct.pack('H', self.my_id)
+        receiver_id = struct.pack('H', self.my_hero_id)
+        data = data_cmd_id + sender_id + receiver_id
+        if is_alert_our_hero:
+            data += struct.pack('B', 0x01)
+        else:
+            data += struct.pack('B', 0x00)
+        data_len = len(data)
+        frame_head = self.get_frame_header(data_len)
+
+        tx_buff = frame_head + cmd_id + data
+
+        frame_tail = self.get_frame_tail(tx_buff)
+
+        tx_buff += frame_tail
+
+        return tx_buff
+
+    def send_alert_our_hero(self, secure_our_hero):
+        tx_buff = self.generate_alert_our_hero(secure_our_hero)
+        self.send_info(tx_buff)
+
 
