@@ -17,6 +17,7 @@ import copy
 from Tools.Tools import Tools
 from .assit_yaw_pitch import BallisticTrajectory
 from .alert_our_hero import is_point_nearby_numpy
+from .predictor import CarKalmanPredictor
 
 
 # from .assit_yaw_pitch import Hero_Assit
@@ -64,6 +65,10 @@ class Messager:
         self.map_lock = threading.Lock()  # 小地图敌方车辆信息锁
         self.sentinel_lock = threading.Lock()  # 哨兵预警信息锁
         self.our_car_lock = threading.Lock()  # 我方车辆信息锁
+
+        # predictor
+        self.predictor = {1: None , 101: None , 2: None , 102: None , 3: None , 103: None , 4: None , 104: None , 5: None , 105: None , 7: None , 107: None}
+        self.predictor_times = {1: 0 , 101: 0 , 2: 0 , 102: 0 , 3: 0 , 103: 0 , 4: 0 , 104: 0 , 5: 0 , 105: 0 , 7: 0 , 107: 0}
 
         # 次数记录
         self.hero_enter_times = 0
@@ -440,8 +445,18 @@ class Messager:
         # 如果为空，直接返回
         with self.map_lock:
             self.enemy_car_infos = enemy_car_infos
+            self.predict_enemy(enemy_car_infos)
         # print(f"enemy car info{self.enemy_car_infos}")
         # self.logger.log(f"update enemy car infos{self.enemy_car_infos}")
+
+    def predict_enemy(self,enemy_infos):
+        for enemy_info in enemy_infos:
+            track_id, car_id, field_xyz, is_valid = enemy_info[0], enemy_info[1], enemy_info[4], enemy_info[6]
+            x,y = field_xyz[0],field_xyz[1]
+            if car_id in self.predictor.keys():
+                self.predictor[car_id].update(x,y)
+            else:
+                self.predictor[car_id] = CarKalmanPredictor(x,y)
 
     # 更新我方车辆信息
     def update_our_car_infos(self, our_car_infos):
@@ -703,8 +718,13 @@ class Messager:
                 #     # print("not init continue")
                 #     continue
                 if field_xyz == []:
-                    # self.logger.log("send map field_xyz is empty")
-                    continue
+                    self.logger.log(f"send map field_xyz of {car_id} is empty,start predict")
+                    predict_x, predict_y = self.predictor[car_id].predict()
+                    self.predictor_times[car_id] += 1
+                    if self.predictor_times[car_id] > 3:
+                        self.predictor_times[car_id] = 0
+                        continue
+                    field_xyz = [predict_x, predict_y, 0]
                 # 将所有信息打印
                 # print("car_id:",car_id , "field_xyz:",field_xyz , "is_valid:",is_valid)
                 # 提取x和y
@@ -712,10 +732,8 @@ class Messager:
                 # x的控制边界，让他在[0,28]m , y控制在[0,15]m
                 x = max(0, min(x, 28))
                 y = max(0, min(y, 15))
-
                 # 将所有车的x，y信息打包
                 for i, enemy_id in enumerate(self.enemy_id):
-
                     if car_id == enemy_id:
                         self.send_map_infos[i] = [x, y]
                         self.send_map_info_is_latest[i] = 5
