@@ -128,6 +128,8 @@ class Messager:
 
         self.our_hero_area = cfg["area"]["our_hero_area"]
         self.our_hero_xyz = None
+        self.hero_state = 0 # 0,1,2
+        self.hero_shooting_points = {1 : [18.0, 4.85] , 2 : [18.75 , 11.1]}
         # 发射速度
         self.hero_v0 = 16 + 0.1 * randint(a=-1, b=1)
         self.hero_assit = None
@@ -135,8 +137,8 @@ class Messager:
         self.secure_our_hero = False
 
         # 发送小地图历史记录
-        self.send_map_infos = [[0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0]]  # 哨兵全局感知
-        self.send_map_info_is_latest = [False, False, False, False, False, False]  # 是否是最新的小地图信息
+        self.send_map_infos = [[0.0, 0.0], [0.0, 0.0], [0.0, 0.0], [0.0, 0.0], [0.0, 0.0], [0.0, 0.0]]  # 哨兵全局感知
+        self.send_map_info_is_latest = [0, 0, 0, 0, 0, 0]  # 是否是最新的小地图信息
 
         # 赛场状态
         # 双倍易伤相关
@@ -248,6 +250,10 @@ class Messager:
             our_car_id, our_center_xy, our_camera_xyz, our_field_xyz, our_color = info
             if(our_car_id == self.my_cars_id[0]):
                 self.our_hero_xyz = our_field_xyz
+                if our_field_xyz[1] > 7.5:
+                    self.hero_state = 2
+                else: 
+                    self.hero_state = 1
                 break
 
     def topo_info(self):
@@ -275,37 +281,12 @@ class Messager:
 
         hero_x = -1
         hero_y = -1
-
-        for enemy_car_info in enemy_car_infos:
-            # 提取car_id和field_xyz
-            track_id, car_id, field_xyz, is_valid = enemy_car_info[0], enemy_car_info[1], enemy_car_info[4], \
-            enemy_car_info[6]
-            # self.logger.log(f"car_id:{car_id},field_xyz{field_xyz}")
-            # print("field_xyz" , field_xyz)
-            # from array to list
-            field_xyz = list(field_xyz)
-            # self.logger.log(f"car_id is {car_id} , enemy_hero_id is {self.enemy_hero_id}")
-            if car_id == self.enemy_hero_id:
-                # self.logger.log(f"find hero at {field_xyz}")
-                if field_xyz == []:
-                    self.logger.log(f"field_xyz is empty")
-                    # print("field_xyz is empty")
-                    return
-                # self.logger.log(f"cross and find hero at {field_xyz}")
-                hero_x = field_xyz[0]
-                hero_y = field_xyz[1]
-                hero_x = max(0, min(hero_x, 28))
-                hero_y = max(0, min(hero_y, 15))
-                # self.logger.log(f"find hero at {hero_x} {hero_y}")
-                # print(f"find hero at {hero_x} , {hero_y}")
-                # 可视化处理，DEBUG
-
-                if self.is_debug:
-                    pixel_coord = self.convert_to_image_coords(hero_x, hero_y, image.shape[1], image.shape[0], 28, 15)
-                    pixel_x = pixel_coord[0]
-                    pixel_y = pixel_coord[1]
-                    cv2.putText(image, f'{car_id}', (int(pixel_x), int(pixel_y)), cv2.FONT_HERSHEY_SIMPLEX, 0.5,
-                                (0, 255, 0), 2)
+        if self.our_hero_xyz is not None:
+            hero_x = self.our_hero_xyz[0]
+            hero_y = self.our_hero_xyz[1]
+            hero_x = max(0, min(hero_x, 28))
+            hero_y = max(0, min(hero_y, 15))
+            # self.logger.log(f"find hero at {hero_x} {hero_y}")
 
         # 对hero_x和hero_y的判空在内部进行了，其他地方若使用hero_x和hero_y，需要注意判空
         if self.is_in_areas(hero_x, hero_y):
@@ -702,13 +683,15 @@ class Messager:
 
             for i, life_time in enumerate(self.send_map_info_is_latest):
                 if life_time <= 0:
-                    if i == 0 and 330 <= self.time_left <= 405:
-                        if self.my_color == "Red":
-                            self.send_map_infos[i] = [18.1, 2.6]
+                    if i == 0 and 130 <= self.time_left <= 405:
+                        if self.hero_state == 1:
+                            self.send_map_infos[i] = self.hero_shooting_points[1]
+                        elif self.hero_state == 2:
+                            self.send_map_infos[i] = self.hero_shooting_points[2]
                         else:
-                            self.send_map_infos[i] = [11.4, 13.25]
+                            self.send_map_infos[i] = [0.0,0.0]
                     else:
-                        self.send_map_infos[i] = [0, 0]
+                        self.send_map_infos[i] = [0.0, 0.0]
 
             for enemy_car_info in enemy_car_infos:
                 # 提取car_id和field_xyz
