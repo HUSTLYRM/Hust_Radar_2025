@@ -507,5 +507,29 @@ cmd_id 和 frame_tail 的 9 个字节以及数据段头结构的 6 个字节，�
     def send_alert_our_hero(self, secure_our_hero):
         tx_buff = self.generate_alert_our_hero(secure_our_hero)
         self.send_info(tx_buff)
+    
+    def generate_alert_hero(self, is_alert_our_hero):
+        cmd_id = struct.pack('H', 0x0301)
+        data_cmd_id = struct.pack('H', 0x0201)
+        sender_id = struct.pack('H', self.my_id)
+        receiver_id = struct.pack('H', self.my_drone)
+        data = data_cmd_id + sender_id + receiver_id
+        if is_alert_our_hero:
+            data += struct.pack('B', 0x01)
+        else:
+            data += struct.pack('B', 0x00)
+        data_len = len(data)
+        frame_head = self.get_frame_header(data_len)
 
+        tx_buff = frame_head + cmd_id + data
+
+        frame_tail = self.get_frame_tail(tx_buff)
+
+        tx_buff += frame_tail
+
+        return tx_buff
+ 
+    def send_alert_to_Drone(self,is_alert_our_hero):
+        tx_buff = self.generate_alert_hero(is_alert_our_hero)
+        self.send_info(tx_buff)
 
