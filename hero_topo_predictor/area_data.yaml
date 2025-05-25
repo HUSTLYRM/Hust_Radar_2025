@@ -1,0 +1,126 @@
+nodes:
+  - corners:
+    - - 795
+      - 151
+    - - 950
+      - 152
+    - - 818
+      - 233
+    - - 956
+      - 232
+    description: hero shooting area
+    flag: blue
+    id: 1
+  - corners:
+    - - 818
+      - 431
+    - - 860
+      - 486
+    - - 839
+      - 403
+    - - 945
+      - 406
+    - - 950
+      - 487
+    description: hero shooing area
+    flag: blue
+    id: 2
+  - corners:
+    - - 952
+      - 154
+    - - 957
+      - 235
+    - - 996
+      - 296
+    - - 1018
+      - 333
+    - - 1119
+      - 337
+    - - 1112
+      - 178
+    - - 1099
+      - 154
+    description: hero's path to shooting
+    flag: blue
+    id: 3
+  - corners:
+    - - 948
+      - 407
+    - - 950
+      - 489
+    - - 1135
+      - 482
+    - - 1118
+      - 338
+    - - 1021
+      - 333
+    - - 997
+      - 381
+    description: hero's path to shooting
+    flag: 'blue '
+    id: 4
+  - corners:
+    - - 481
+      - 530
+    - - 461
+      - 454
+    - - 334
+      - 439
+    - - 327
+      - 525
+    description: hero shooting area
+    flag: red
+    id: 5
+  - corners:
+    - - 333
+      - 440
+    - - 281
+      - 383
+    - - 256
+      - 339
+    - - 154
+      - 336
+    - - 165
+      - 497
+    - - 179
+      - 523
+    - - 327
+      - 524
+    description: hero path to shooting
+    flag: red
+    id: 6
+
+  - corners:
+    - - 457
+      - 250
+    - - 430
+      - 209
+    - - 328
+      - 209
+    - - 329
+      - 295
+    - - 437
+      - 295
+    - - 438
+      - 273
+    description: hero shooting point
+    flag: red
+    id: 7
+  - corners:
+    - - 329
+      - 289
+    - - 282
+      - 294
+    - - 256
+      - 335
+    - - 154
+      - 338
+    - - 149
+      - 234
+    - - 255
+      - 233
+    - - 329
+      - 209
+    description: hero path to shooting
+    flag: red
+    id: 8
