@@ -9,22 +9,10 @@ nodes:
     - - 956
       - 232
     description: hero shooting area
-    flag: blue
+    flag: 'blue'
+    symbol: 'hero shooting'
     id: 1
-  - corners:
-    - - 818
-      - 431
-    - - 860
-      - 486
-    - - 839
-      - 403
-    - - 945
-      - 406
-    - - 950
-      - 487
-    description: hero shooing area
-    flag: blue
-    id: 2
+
   - corners:
     - - 952
       - 154
@@ -41,8 +29,26 @@ nodes:
     - - 1099
       - 154
     description: hero's path to shooting
-    flag: blue
+    flag: 'blue'
+    symbol: 'engine exchange'
+    id: 2
+
+  - corners:
+    - - 818
+      - 431
+    - - 860
+      - 486
+    - - 839
+      - 403
+    - - 945
+      - 406
+    - - 950
+      - 487
+    description: hero shooing area
+    flag: 'blue'
+    symbol: 'hero shooting'
     id: 3
+
   - corners:
     - - 948
       - 407
@@ -57,8 +63,10 @@ nodes:
     - - 997
       - 381
     description: hero's path to shooting
-    flag: 'blue '
+    flag: 'blue'
+    symbol: 'hero shooting'
     id: 4
+
   - corners:
     - - 481
       - 530
@@ -69,7 +77,8 @@ nodes:
     - - 327
       - 525
     description: hero shooting area
-    flag: red
+    flag: 'red'
+    symbol: 'hero shooting'
     id: 5
   - corners:
     - - 333
@@ -87,7 +96,8 @@ nodes:
     - - 327
       - 524
     description: hero path to shooting
-    flag: red
+    flag: 'red'
+    symbol: 'engine exchange'
     id: 6
 
   - corners:
@@ -104,7 +114,8 @@ nodes:
     - - 438
       - 273
     description: hero shooting point
-    flag: red
+    flag: 'red'
+    symbol: 'hero shooting'
     id: 7
   - corners:
     - - 329
@@ -122,5 +133,6 @@ nodes:
     - - 329
       - 209
     description: hero path to shooting
-    flag: red
+    flag: 'red'
+    symbol: 'hero shooting'
     id: 8
