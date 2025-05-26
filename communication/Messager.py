@@ -18,6 +18,7 @@ from Tools.Tools import Tools
 from .assit_yaw_pitch import BallisticTrajectory
 from .alert_our_hero import is_point_nearby_numpy
 from .predictor import CarKalmanPredictor
+from .hero_topo_predictor.predict_hero import Predictor
 
 
 # from .assit_yaw_pitch import Hero_Assit
@@ -129,7 +130,9 @@ class Messager:
         self.our_hero_area = cfg["area"]["our_hero_area"]
         self.our_hero_xyz = None
         self.hero_state = 0 # 0,1,2
-        self.hero_shooting_points = {1 : [18.0, 4.85] , 2 : [18.75 , 11.1]}
+        self.hero_shooting_points = {1 : [18.0, 4.85] , 2 : [18.75 , 11.1]} if self.my_color == "Red" else {1 : [10.0 , 10.15] , 2 : [9.25 , 3.9]}
+        self.hero_predictor = Predictor(self.my_color , 'hero')
+        self.engine_predictor = Predictor(self.my_color , 'engine')
         # 发射速度
         self.hero_v0 = 16 + 0.1 * randint(a=-1, b=1)
         self.hero_assit = None
@@ -252,7 +255,7 @@ class Messager:
                 self.our_hero_xyz = our_field_xyz
                 if our_field_xyz[1] > 7.5:
                     self.hero_state = 2
-                else: 
+                else:
                     self.hero_state = 1
                 break
 
@@ -434,17 +437,18 @@ class Messager:
         for enemy_info in enemy_infos:
             track_id, car_id, field_xyz, is_valid = enemy_info[0], enemy_info[1], enemy_info[4], enemy_info[6]
             x,y = field_xyz[0],field_xyz[1]
-            if car_id in self.predictor.keys():
-                self.predictor[car_id].update(x,y)
-            else:
-                self.predictor[car_id] = CarKalmanPredictor(x,y)
+            if car_id % 100 == 1 :
+                self.hero_predictor.update_cord([x,y])
+            if car_id % 100 == 2:
+                self.engine_predictor.update_cord([x,y])
+                
 
     # 更新我方车辆信息
     def update_our_car_infos(self, our_car_infos):
         with self.map_lock:
             self.our_car_infos = our_car_infos
             self.parse_hero_xyz()
-            self.assit_hero()
+            
 
     # 更新哨兵预警信息
     def update_sentinel_alert_info(self, sentinel_alert_info):
@@ -584,7 +588,7 @@ class Messager:
                 f'Sent double effect info: {self.already_activate_double_effect_times + 1} because marked num >= 4')
             return
 
-        if self.dart_target == 2:
+        if self.dart_target >= 1:
             self.auto_send_double_effect_decision()
             print("发送双倍易伤请求，因为飞镖目标为2")
 
@@ -684,12 +688,9 @@ class Messager:
             for i, life_time in enumerate(self.send_map_info_is_latest):
                 if life_time <= 0:
                     if i == 0 and 130 <= self.time_left <= 405:
-                        if self.hero_state == 1:
-                            self.send_map_infos[i] = self.hero_shooting_points[1]
-                        elif self.hero_state == 2:
-                            self.send_map_infos[i] = self.hero_shooting_points[2]
-                        else:
-                            self.send_map_infos[i] = [0.0,0.0]
+                        self.send_map_infos[i] = self.hero_predictor.get_result()
+                    elif i == 1 and 330 <= self.time_left <= 405:
+                        self.send_map_infos[i] = self.engine_predictor.get_result()
                     else:
                         self.send_map_infos[i] = [0.0, 0.0]
 
@@ -701,13 +702,7 @@ class Messager:
                 #     # print("not init continue")
                 #     continue
                 if field_xyz == []:
-                    self.logger.log(f"send map field_xyz of {car_id} is empty,start predict")
-                    predict_x, predict_y = self.predictor[car_id].predict()
-                    self.predictor_times[car_id] += 1
-                    if self.predictor_times[car_id] > 3:
-                        self.predictor_times[car_id] = 0
-                        continue
-                    field_xyz = [predict_x, predict_y, 0]
+                    continue
                 # 将所有信息打印
                 # print("car_id:",car_id , "field_xyz:",field_xyz , "is_valid:",is_valid)
                 # 提取x和y
