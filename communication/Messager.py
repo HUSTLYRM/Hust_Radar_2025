@@ -18,7 +18,8 @@ from Tools.Tools import Tools
 from assit_yaw_pitch import BallisticTrajectory
 from alert_our_hero import is_point_nearby_numpy
 from predictor import CarKalmanPredictor
-from topo_predictor.predictor import Hero_Predictor
+from hero_topo_predictor.predict_hero import Hero_Predictor
+from engine_topo_predictor.predict_engine import Predictor
 
 
 # from .assit_yaw_pitch import Hero_Assit
@@ -145,7 +146,7 @@ class Messager:
         self.hero_shooting_points = {1: [18.0, 4.85], 2: [18.75, 11.1]} if self.my_color == 'Blue' else {
             1: [10.0, 10.15], 2: [9.25, 3.9]}
         self.hero_predictor = Hero_Predictor(self.my_color, 'hero')
-        self.engine_predictor = Hero_Predictor(self.my_color, 'engine')
+        self.engine_predictor = Predictor(self.my_color, 'engine')
         self.send_map_infos_bkp = [2.39681, 2.36] if self.sender.my_color == 'Blue' else [25.60419, 12.6389]
 
         # 发送小地图历史记录
@@ -413,11 +414,11 @@ class Messager:
     def alert_our_hero(self,info):
         if self.our_hero_xyz is None:
             return
-        
+
         self.secure_our_hero, self.enemy_distance = is_point_nearby_numpy(self.our_hero_xyz,
                                                                           self.generate_send_map_infos(self.enemy_car_infos))
-        
-        
+
+
 
     # 开启线程
     def start(self):
