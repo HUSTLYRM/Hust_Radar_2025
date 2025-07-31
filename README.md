@@ -236,7 +236,7 @@ python 25_main.py
 这种方法的核心在于需要有精确的雷达和相机外参变换矩阵，来构建传感器之间的信息流
 
 首先，我们可以拿到车辆在图像坐标系中坐标，然后我们为了确定深度信息，需要将激光雷达点云投影至相机和图像坐标系来得到bbox内的点云，然后做一次聚类来防止背景对定位的干扰，接着将聚类后的聚类中心坐标通过和相机和赛场的外参矩阵投影至赛场坐标系完成目标定位
-![[front_fusion.png]]
+![front_fusion](https://github.com/HUSTLYRM/Hust_Radar_2025/blob/main/front_fusion.png)
 
 
 ##### 2. 点云配准差分+传感器后融合
@@ -297,7 +297,7 @@ python 25_main.py
 
 
 ## 软件与硬件的系统框图
-![[Pasted image 20250326093807.png]]
+![image2](https://github.com/HUSTLYRM/Hust_Radar_2025/blob/main/Pasted%20image%2020250326093807.png)
 
 ## 未来优化方向 🚀
 
