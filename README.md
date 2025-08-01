@@ -14,7 +14,7 @@
 
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 
-<img src="./asset/hustlyrm.png" width=25% />
+<img src="./asset/hustlyrm.jpg" width=25% />
 
 </div>
 
