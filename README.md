@@ -1,6 +1,7 @@
 # Hust_Radar_2025
 2025赛季狼牙战队雷达站代码仓库&开源
 
+
 ## 功能简介 🔎
 
 本赛季雷达站继承自上赛季的框架，集成了不同模式的传感器融合方案，以及低成本的单目相机方案，并支持扩展多相机，以及推出新的多机通信决策和传感器融合方案
@@ -20,7 +21,7 @@
 | -------- | :------------------------------------------------------: |
 | 工业相机 | 海康威视工业相机 29.2fps@4024*3036 MV-CU120-10UC *1 870r |
 | 镜头     |      海康威视 8mm工业镜头 MVL-HF0824M-10MP *1 250r       |
-| 激光雷达 |              Livox Mid-70激光雷达 *1 3600r               |
+| 激光雷达 |              Livox Mid-70激光雷达 *1 3600r  （本赛季未上场）             |
 
 #### 二、算力平台
 
@@ -155,7 +156,7 @@ python main.py
 ```
 
 
-**3.2 传感器前融合方案** 
+**3.2 传感器后融合方案** 
 首先，编译目录下pclmatcher的ros/c++模块
 ```shell
 cd path/to/pclmatcher
@@ -166,13 +167,18 @@ catkin_make -DPYTHON_EXECUTABLE=/path/to/your/python/compiler
 
 然后 运行auto_start.sh自启动脚本
 ```shell
-chmod a+X ./auto_start.sh
-./auto_start.sh
+chmod a+X ./start_ros.sh
+./start_ros.sh
 ```
 最后，运行python主程序
 ```shell
 cd path/to/25_main.py
 python 25_main.py
+```
+
+如果只有单目相机（最简单/最推荐）
+```shell
+python 25main_without_lidar.py
 ```
 
 ## 文件目录结构 📂
@@ -207,6 +213,8 @@ python 25_main.py
 │   ├── detector_config.yaml    检测模型路径与detector参数文件
 │   └── main_config.yaml        总参数文件
 ├── weights/            模型文件夹
+├── Point_Tracker/      传感器融合
+├── pclmatcher          基于华农的点云配准模块（感谢聪哥）
 ├── stereo_camera/      相机驱动依赖
 ├── camera/             相机驱动依赖
 ├── Tools/              工具类
@@ -236,7 +244,7 @@ python 25_main.py
 这种方法的核心在于需要有精确的雷达和相机外参变换矩阵，来构建传感器之间的信息流
 
 首先，我们可以拿到车辆在图像坐标系中坐标，然后我们为了确定深度信息，需要将激光雷达点云投影至相机和图像坐标系来得到bbox内的点云，然后做一次聚类来防止背景对定位的干扰，接着将聚类后的聚类中心坐标通过和相机和赛场的外参矩阵投影至赛场坐标系完成目标定位
-![front_fusion](https://github.com/HUSTLYRM/Hust_Radar_2025/blob/main/front_fusion.png)
+![[front_fusion.png]]
 
 
 ##### 2. 点云配准差分+传感器后融合
@@ -297,7 +305,7 @@ python 25_main.py
 
 
 ## 软件与硬件的系统框图
-![image2](https://github.com/HUSTLYRM/Hust_Radar_2025/blob/main/Pasted%20image%2020250326093807.png)
+![[Pasted image 20250326093807.png]]
 
 ## 未来优化方向 🚀
 
