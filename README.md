@@ -245,9 +245,7 @@ python 25main_without_lidar.py
 ├── Tools/              工具类
 ├── Log/                Log类
 ├── ultralytics/        ultralytics魔改包
-├── camera.py           仅运行相机
-├── detect_thread_test.py  仅运行检测线程
-└── main.py             主线程文件
+
 ```
 
 ## 基本算法阐述 ♾️
