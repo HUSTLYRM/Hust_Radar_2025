@@ -2,6 +2,31 @@
 2025赛季狼牙战队雷达站代码仓库&开源
 
 
+![](./asset/cover.jpg)
+
+<div align="center" float="left">
+
+<a href="https://www.robomaster.com/zh-CN">
+
+<img src="./asset/RoboMaster-mecha-logo.png" width=25% />
+
+</a>
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+
+<img src="./asset/hustlyrm.png" width=25% />
+
+</div>
+
+<br>
+
+<div align="center">
+
+<b> 华中科技大学 狼牙战队 视觉组 </b>
+
+ </div>
+
+
 ## 功能简介 🔎
 
 本赛季雷达站继承自上赛季的框架，集成了不同模式的传感器融合方案，以及低成本的单目相机方案，并支持扩展多相机，以及推出新的多机通信决策和传感器融合方案
