@@ -8,13 +8,13 @@
 
 <a href="https://www.robomaster.com/zh-CN">
 
-<img src="./asset/RoboMaster-mecha-logo.png" width=25% />
+<img src="./asset/RoboMaster-mecha-logo.png" width=10% />
 
 </a>
 
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 
-<img src="./asset/hustlyrm.jpg" width=25% />
+<img src="./asset/hustlyrm.jpg" width=10% />
 
 </div>
 
